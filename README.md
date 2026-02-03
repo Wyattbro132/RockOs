@@ -2,7 +2,7 @@
 
 A portable, self-contained browser OS — everything in **one single HTML file**.
 
-No installation, no servers, no dependencies. Just open the file (or a link) in any modern browser and get a full desktop experience.
+No installation, no servers, no dependencies. Just open the file in any modern browser and get a full desktop experience.
 
 ## Features
 - Instant launch: Download or click → desktop appears
