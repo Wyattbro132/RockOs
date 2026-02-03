@@ -2,7 +2,6 @@
 
 A portable, self-contained browser OS — everything in **one single HTML file**.
 
-No installation, no servers, no dependencies. Just open the file in any modern browser and get a full desktop experience.
 
 ## Features
 - Instant launch: Download or click → desktop appears
@@ -15,15 +14,13 @@ No installation, no servers, no dependencies. Just open the file in any modern b
 - Fully client-side — sandboxed in your browser tab
 
 ## How to Use
-1. Download (index.html)
+1. Download (rock.html)
 2. Double-click it or drag it into a browser tab
 3. Log in (default: no password, just hit enter)
 4. Start using
 
-Or open the live demo link above.
-
 ## Why One File?
-Because real software should be as reliable and portable as a rock — drop it anywhere and it just works.
+Because rock
 
 ## Tech Stack
 - Pure HTML + CSS + JavaScript (vanilla, no frameworks)
@@ -32,7 +29,7 @@ Because real software should be as reliable and portable as a rock — drop it a
 - UV + BareMux + Wisp for optional proxy/browser features
 
 ## Contributing
-Fork → modify `index.html` → open a PR.  
+Fork → modify `rock.html` → open a PR.  
 Ideas welcome: new apps, themes, optimizations, bug fixes.
 
 ## License
