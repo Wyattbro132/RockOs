@@ -1,1 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rock OS</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
 
+    body {
+      height:100vh;
+      font-family:system-ui, sans-serif;
+      overflow:hidden;
+      background:#0a0e17;
+      color:#e2e8f0;
+    }
+
+    /* ──────────────────────────────
+       BOOT SCREEN
+    ────────────────────────────── */
+    #boot {
+      position:fixed;
+      inset:0;
+      z-index:1000;
+      background:#0a0e17;
+      display:grid;
+      place-items:center;
+      transition:opacity 1.2s ease;
+    }
+
+    #boot.hidden {
+      opacity:0;
+      pointer-events:none;
+    }
+
+    .boot-content {
+      text-align:center;
+    }
+
+    .rock-emoji {
+      font-size:14rem;
+      margin-bottom:1rem;
+      opacity:0;
+      transform:scale(0.8);
+      animation:rockAppear 1.8s forwards 0.4s,
+                gentlePulse 3.5s infinite 2.2s ease-in-out;
+    }
+
+    .boot-title {
+      font-size:3.2rem;
+      font-weight:700;
+      letter-spacing:-0.04em;
+      opacity:0;
+      animation:fadeUp 1.4s 1.2s forwards;
+    }
+
+    .progress-wrap {
+      margin:3.5rem auto 1rem;
+      width:380px;
+      height:6px;
+      background:rgba(226,232,240,0.08);
+      border-radius:3px;
+      overflow:hidden;
+      opacity:0;
+      animation:fadeIn 1s 3.2s forwards;
+    }
+
+    .progress {
+      width:0%;
+      height:100%;
+      background:#60a5fa;
+      border-radius:3px;
+      animation:fillBar 4.5s 3.8s forwards ease-in-out;
+    }
+
+    .percent {
+      font-size:1.4rem;
+      opacity:0;
+      animation:fadeIn 0.9s 3.8s forwards;
+      color:#60a5fa;
+    }
+
+    @keyframes rockAppear {
+      to { opacity:1; transform:scale(1); }
+    }
+
+    @keyframes gentlePulse {
+      0%,100% { transform:scale(1); }
+      50%     { transform:scale(1.04); }
+    }
+
+    @keyframes fadeUp {
+      to { opacity:1; transform:translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      to { opacity:1; }
+    }
+
+    @keyframes fillBar {
+      to { width:100%; }
+    }
+
+    /* ──────────────────────────────
+       DESKTOP (appears after boot)
+    ────────────────────────────── */
+    #desktop {
+      height:100%;
+      background:linear-gradient(to bottom, #1e293b, #0f172a);
+      position:relative;
+      display:none;
+      padding:20px;
+    }
+
+    .icon {
+      position:absolute;
+      width:80px;
+      text-align:center;
+      cursor:pointer;
+      padding:8px;
+      border-radius:8px;
+      transition:background 0.15s;
+    }
+
+    .icon:hover {
+      background:rgba(255,255,255,0.08);
+    }
+
+    .icon i { font-size:2.8rem; display:block; margin-bottom:6px; }
+    .icon span { font-size:0.82rem; display:block; }
+
+    .window {
+      position:absolute;
+      width:560px;
+      height:380px;
+      background:#1e293b;
+      border-radius:10px;
+      overflow:hidden;
+      box-shadow:0 10px 25px rgba(0,0,0,0.5);
+      display:none;
+      flex-direction:column;
+    }
+
+    .titlebar {
+      height:36px;
+      background:#0f172a;
+      display:flex;
+      align-items:center;
+      padding:0 12px;
+      font-weight:bold;
+      cursor:move;
+    }
+
+    .titlebar button {
+      margin-left:auto;
+      background:#ef4444;
+      border:none;
+      color:white;
+      width:24px;
+      height:24px;
+      border-radius:50%;
+      cursor:pointer;
+    }
+
+    .content {
+      flex:1;
+      padding:20px;
+      overflow:auto;
+    }
+
+    #taskbar {
+      position:fixed;
+      bottom:0;
+      left:0;
+      right:0;
+      height:48px;
+      background:rgba(30,41,59,0.88);
+      backdrop-filter:blur(10px);
+      border-top:1px solid rgba(255,255,255,0.08);
+      display:flex;
+      align-items:center;
+      padding:0 16px;
+      z-index:100;
+    }
+
+    #startBtn {
+      background:#60a5fa;
+      color:black;
+      padding:8px 16px;
+      border-radius:6px;
+      font-weight:bold;
+      cursor:pointer;
+      margin-right:16px;
+    }
+
+    #startMenu {
+      position:fixed;
+      bottom:56px;
+      left:16px;
+      width:320px;
+      background:#1e293b;
+      border-radius:10px;
+      box-shadow:0 10px 25px rgba(0,0,0,0.5);
+      padding:16px;
+      display:none;
+      z-index:99;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Boot screen -->
+  <div id="boot">
+    <div class="boot-content">
+      <div class="rock-emoji">🪨</div>
+      <div class="boot-title">Rock OS</div>
+
+      <div class="progress-wrap">
+        <div class="progress"></div>
+      </div>
+
+      <div class="percent">0%</div>
+    </div>
+  </div>
+
+  <!-- Desktop (hidden until boot finishes) -->
+  <div id="desktop">
+    <!-- Icons will be added by JS -->
+  </div>
+
+  <div id="taskbar">
+    <div id="startBtn">Start</div>
+    <div id="taskbarIcons"></div>
+  </div>
+
+  <div id="startMenu">
+    <h3 style="margin-bottom:12px;">Rock OS</h3>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+      <div onclick="openWindow('files')" style="cursor:pointer;text-align:center;">
+        <div style="font-size:2.5rem;">📁</div>
+        <div>Files</div>
+      </div>
+      <div onclick="openWindow('terminal')" style="cursor:pointer;text-align:center;">
+        <div style="font-size:2.5rem;">>_</div>
+        <div>Terminal</div>
+      </div>
+      <div onclick="openWindow('settings')" style="cursor:pointer;text-align:center;">
+        <div style="font-size:2.5rem;">⚙️</div>
+        <div>Settings</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ──────────────────────────────────────────────
+    // Boot progress
+    // ──────────────────────────────────────────────
+    const bootEl = document.getElementById('boot');
+    const percentEl = document.querySelector('.percent');
+    let progress = 0;
+
+    const bootInterval = setInterval(() => {
+      progress += Math.random() * 6 + 2.5;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(bootInterval);
+        setTimeout(() => {
+          bootEl.classList.add('hidden');
+          document.getElementById('desktop').style.display = 'block';
+        }, 1200);
+      }
+      percentEl.textContent = Math.floor(progress) + "%";
+    }, 140);
+
+    // ──────────────────────────────────────────────
+    // Basic desktop icons
+    // ──────────────────────────────────────────────
+    const icons = [
+      { name: "Files", emoji: "📁", x: 60, y: 60, action: () => openWindow('files') },
+      { name: "Terminal", emoji: ">_", x: 60, y: 180, action: () => openWindow('terminal') },
+      { name: "Settings", emoji: "⚙️", x: 60, y: 300, action: () => openWindow('settings') },
+    ];
+
+    function renderIcons() {
+      const desk = document.getElementById('desktop');
+      icons.forEach(ic => {
+        const el = document.createElement('div');
+        el.className = 'icon';
+        el.style.left = ic.x + 'px';
+        el.style.top  = ic.y + 'px';
+        el.innerHTML = `<div style="font-size:2.8rem;">${ic.emoji}</div><span>${ic.name}</span>`;
+        el.ondblclick = ic.action;
+        desk.appendChild(el);
+      });
+    }
+
+    // ──────────────────────────────────────────────
+    // Simple window opener
+    // ──────────────────────────────────────────────
+    function openWindow(id) {
+      let win = document.getElementById('win-'+id);
+      if (win) {
+        win.style.display = 'flex';
+        win.style.zIndex = Date.now();
+        return;
+      }
+
+      win = document.createElement('div');
+      win.id = 'win-'+id;
+      win.className = 'window';
+      win.style.left = (Math.random()*300 + 120) + 'px';
+      win.style.top  = (Math.random()*200 + 80) + 'px';
+      win.innerHTML = `
+        <div class="titlebar">
+          <span>${id.charAt(0).toUpperCase() + id.slice(1)}</span>
+          <button onclick="this.closest('.window').style.display='none'">×</button>
+        </div>
+        <div class="content">
+          <h2>${id}</h2>
+          <p>This is the ${id} window.</p>
+        </div>
+      `;
+      document.body.appendChild(win);
+      win.style.display = 'flex';
+    }
+
+    // ──────────────────────────────────────────────
+    // Start menu toggle
+    // ──────────────────────────────────────────────
+    document.getElementById('startBtn').onclick = () => {
+      const menu = document.getElementById('startMenu');
+      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    };
+
+    // Hide start menu when clicking elsewhere
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#startBtn') && !e.target.closest('#startMenu')) {
+        document.getElementById('startMenu').style.display = 'none';
+      }
+    });
+
+    // Init
+    renderIcons();
+  </script>
+</body>
+</html>
