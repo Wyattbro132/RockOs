@@ -1,1 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rock OS</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
 
+    body {
+      height:100vh;
+      font-family:system-ui, sans-serif;
+      overflow:hidden;
+      background:#0a0e17;
+      color:#e2e8f0;
+      transition:filter 0.3s;
+    }
+
+    /* Boot screen */
+    #boot {
+      position:fixed;
+      inset:0;
+      z-index:1000;
+      background:#0a0e17;
+      display:grid;
+      place-items:center;
+      transition:opacity 1.2s ease;
+    }
+
+    #boot.hidden {
+      opacity:0;
+      pointer-events:none;
+    }
+
+    .boot-content { text-align:center; }
+    .rock-emoji {
+      font-size:14rem;
+      margin-bottom:1rem;
+      opacity:0;
+      transform:scale(0.8);
+      animation:rockAppear 1.8s forwards 0.4s, gentlePulse 3.5s infinite 2.2s ease-in-out;
+    }
+    .boot-title {
+      font-size:3.2rem;
+      font-weight:700;
+      letter-spacing:-0.04em;
+      opacity:0;
+      animation:fadeUp 1.4s 1.2s forwards;
+    }
+    .progress-wrap {
+      margin:3.5rem auto 1rem;
+      width:380px;
+      height:6px;
+      background:rgba(226,232,240,0.08);
+      border-radius:3px;
+      overflow:hidden;
+      opacity:0;
+      animation:fadeIn 1s 3.2s forwards;
+    }
+    .progress {
+      width:0%;
+      height:100%;
+      background:#60a5fa;
+      border-radius:3px;
+      animation:fillBar 4.5s 3.8s forwards ease-in-out;
+    }
+    .percent {
+      font-size:1.4rem;
+      opacity:0;
+      animation:fadeIn 0.9s 3.8s forwards;
+      color:#60a5fa;
+    }
+
+    @keyframes rockAppear { to { opacity:1; transform:scale(1); } }
+    @keyframes gentlePulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.04); } }
+    @keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeIn { to { opacity:1; } }
+    @keyframes fillBar { to { width:100%; } }
+
+    /* Desktop */
+    #desktop {
+      height:100%;
+      background:linear-gradient(to bottom, #1e293b, #0f172a);
+      position:relative;
+      display:none;
+      padding:20px;
+      transition:filter 0.3s;
+    }
+
+    #wallpaper {
+      position:absolute;
+      inset:0;
+      background-size:cover;
+      background-position:center;
+      opacity:0.9;
+      z-index:-1;
+    }
+
+    .icon {
+      position:absolute;
+      width:80px;
+      text-align:center;
+      cursor:pointer;
+      padding:8px;
+      border-radius:8px;
+      transition:background 0.15s;
+    }
+
+    .icon:hover { background:rgba(255,255,255,0.08); }
+    .icon div { font-size:2.8rem; display:block; margin-bottom:6px; }
+    .icon span { font-size:0.82rem; display:block; }
+
+    .window {
+      position:absolute;
+      background:#1e293b;
+      border-radius:10px;
+      overflow:hidden;
+      box-shadow:0 10px 25px rgba(0,0,0,0.5);
+      display:none;
+      flex-direction:column;
+      resize:both;
+      min-width:300px;
+      min-height:200px;
+      max-width:90vw;
+      max-height:90vh;
+    }
+
+    .titlebar {
+      height:36px;
+      background:#0f172a;
+      display:flex;
+      align-items:center;
+      padding:0 12px;
+      font-weight:bold;
+      cursor:move;
+    }
+
+    .titlebar button {
+      margin-left:4px;
+      background:#ef4444;
+      border:none;
+      color:white;
+      width:24px;
+      height:24px;
+      border-radius:50%;
+      cursor:pointer;
+    }
+
+    .titlebar .minimize { background:#eab308; }
+    .titlebar .maximize { background:#22c55e; }
+
+    .content {
+      flex:1;
+      padding:20px;
+      overflow:auto;
+    }
+
+    #taskbar {
+      position:fixed;
+      bottom:0;
+      left:0;
+      right:0;
+      height:48px;
+      background:rgba(30,41,59,0.88);
+      backdrop-filter:blur(10px);
+      border-top:1px solid rgba(255,255,255,0.08);
+      display:flex;
+      align-items:center;
+      padding:0 16px;
+      z-index:100;
+    }
+
+    #startBtn {
+      background:#60a5fa;
+      color:black;
+      padding:8px 16px;
+      border-radius:6px;
+      font-weight:bold;
+      cursor:pointer;
+      margin-right:16px;
+    }
+
+    #taskbar-windows {
+      display:flex;
+      gap:8px;
+    }
+
+    .taskbar-icon {
+      background:#1e293b;
+      padding:4px 12px;
+      border-radius:6px;
+      cursor:pointer;
+      transition:background 0.15s;
+    }
+
+    .taskbar-icon:hover { background:#2d3b55; }
+
+    #startMenu {
+      position:fixed;
+      bottom:56px;
+      left:16px;
+      width:360px;
+      background:#1e293b;
+      border-radius:10px;
+      box-shadow:0 10px 25px rgba(0,0,0,0.5);
+      padding:16px;
+      display:none;
+      z-index:99;
+      overflow:auto;
+      max-height:60vh;
+    }
+
+    .menu-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(80px, 1fr));
+      gap:12px;
+    }
+
+    .menu-item {
+      text-align:center;
+      cursor:pointer;
+    }
+
+    .menu-item div { font-size:2.5rem; margin-bottom:4px; }
+    .menu-item span { display:block; font-size:0.85rem; }
+
+    /* App-specific styles */
+    #terminal-output { white-space:pre-wrap; font-family:monospace; font-size:1rem; }
+    #terminal-input { width:100%; background:#0f172a; border:none; color:#e2e8f0; font-family:monospace; font-size:1rem; padding:8px; outline:none; }
+
+    #file-upload { margin-bottom:1rem; }
+    #file-list { list-style:none; margin:0; }
+    #file-list li { padding:8px; border-bottom:1px solid rgba(255,255,255,0.08); cursor:pointer; }
+    #file-list li:hover { background:rgba(255,255,255,0.08); }
+    #file-view { margin-top:1rem; max-height:300px; overflow:auto; }
+
+    .setting { margin-bottom:1.5rem; }
+    .setting label { display:block; margin-bottom:0.5rem; }
+    #brightness-slider { width:100%; }
+    #wallpaper-input { margin-top:0.5rem; }
+
+    #browser-url { width:calc(100% - 80px); padding:8px; border:none; background:#0f172a; color:#e2e8f0; }
+    #browser-go { width:80px; padding:8px; background:#60a5fa; border:none; color:black; cursor:pointer; }
+    #browser-iframe { width:100%; height:calc(100% - 40px); border:none; }
+
+    #calculator-display { width:100%; padding:12px; background:#0f172a; font-size:2rem; text-align:right; border:none; color:#e2e8f0; }
+    .calc-buttons { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+    .calc-btn { padding:16px; background:#1e293b; border:none; color:#e2e8f0; font-size:1.4rem; cursor:pointer; border-radius:4px; }
+    .calc-btn:hover { background:#2d3b55; }
+    .calc-btn.operator { background:#60a5fa; color:black; }
+
+    #notepad-text { width:100%; height:100%; padding:12px; background:#0f172a; border:none; color:#e2e8f0; font-family:monospace; font-size:1rem; resize:none; outline:none; }
+
+    #music-player { text-align:center; }
+    #music-upload { margin-bottom:1rem; }
+    #playlist { list-style:none; max-height:150px; overflow:auto; }
+    #playlist li { padding:8px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.08); }
+    #playlist li:hover { background:rgba(255,255,255,0.08); }
+    #music-audio { width:100%; margin-top:1rem; }
+
+    #paint-canvas { width:100%; height:calc(100% - 40px); border:1px solid #0f172a; background:white; cursor:crosshair; }
+    #paint-tools { display:flex; gap:8px; margin-bottom:1rem; }
+    #paint-color { width:40px; height:40px; border:none; cursor:pointer; }
+    #paint-size { width:60px; }
+
+    #calendar-month { font-size:1.5rem; margin-bottom:1rem; text-align:center; }
+    .calendar-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+    .calendar-day { padding:8px; background:#0f172a; border-radius:4px; cursor:pointer; text-align:center; }
+    .calendar-day:hover { background:#1e293b; }
+    #calendar-events { margin-top:1rem; }
+    #add-event { margin-top:1rem; width:100%; padding:8px; background:#60a5fa; border:none; color:black; cursor:pointer; }
+
+    #weather-input { width:calc(100% - 80px); padding:8px; border:none; background:#0f172a; color:#e2e8f0; }
+    #weather-go { width:80px; padding:8px; background:#60a5fa; border:none; color:black; cursor:pointer; }
+    #weather-output { margin-top:1rem; font-size:1.2rem; }
+
+    .ttt-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:1rem auto; width:240px; }
+    .ttt-cell { height:80px; background:#0f172a; font-size:4rem; cursor:pointer; display:grid; place-items:center; }
+    .ttt-cell:hover { background:#1e293b; }
+    #ttt-status { text-align:center; margin-top:1rem; font-size:1.2rem; }
+    #ttt-reset { margin-top:1rem; padding:8px; background:#60a5fa; border:none; color:black; cursor:pointer; }
+
+    #todo-input { width:calc(100% - 80px); padding:8px; border:none; background:#0f172a; color:#e2e8f0; }
+    #todo-add { width:80px; padding:8px; background:#60a5fa; border:none; color:black; cursor:pointer; }
+    #todo-list { list-style:none; margin-top:1rem; }
+    #todo-list li { display:flex; align-items:center; padding:8px; border-bottom:1px solid rgba(255,255,255,0.08); }
+    #todo-list li span { flex:1; }
+    #todo-list li button { background:#ef4444; border:none; color:white; padding:4px 8px; cursor:pointer; margin-left:8px; }
+
+    #notifications { position:fixed; top:20px; right:20px; z-index:200; }
+    .notification {
+      background:#1e293b;
+      padding:12px 20px;
+      border-radius:8px;
+      margin-bottom:12px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.3);
+      transition:transform 0.3s, opacity 0.3s;
+    }
+    .notification.hidden { transform:translateX(100%); opacity:0; }
+  </style>
+</head>
+<body>
+
+  <!-- Boot screen -->
+  <div id="boot">
+    <div class="boot-content">
+      <div class="rock-emoji">🪨</div>
+      <div class="boot-title">Rock OS</div>
+      <div class="progress-wrap">
+        <div class="progress"></div>
+      </div>
+      <div class="percent">0%</div>
+    </div>
+  </div>
+
+  <!-- Desktop -->
+  <div id="desktop">
+    <div id="wallpaper"></div>
+  </div>
+
+  <div id="taskbar">
+    <div id="startBtn">Start</div>
+    <div id="taskbar-windows"></div>
+    <div id="clock" style="margin-left:auto;"></div>
+  </div>
+
+  <div id="startMenu">
+    <h3 style="margin-bottom:12px;">Rock OS</h3>
+    <div class="menu-grid"></div>
+  </div>
+
+  <div id="notifications"></div>
+
+  <script>
+    // ──────────────────────────────────────────────
+    // Global state & helpers
+    // ──────────────────────────────────────────────
+    const STORAGE = {
+      wallpaper: 'rock_wallpaper',
+      brightness: 'rock_brightness',
+      notepad: 'rock_notepad',
+      todo: 'rock_todo',
+      events: 'rock_events',
+    };
+
+    let openWindows = {};
+    let zIndex = 1000;
+    let activeWin = null;
+    let offsetX, offsetY;
+
+    function showNotification(message) {
+      const notif = document.createElement('div');
+      notif.className = 'notification';
+      notif.textContent = message;
+      document.getElementById('notifications').appendChild(notif);
+      setTimeout(() => {
+        notif.classList.add('hidden');
+        setTimeout(() => notif.remove(), 300);
+      }, 3000);
+    }
+
+    // ──────────────────────────────────────────────
+    // Boot animation
+    // ──────────────────────────────────────────────
+    const bootEl = document.getElementById('boot');
+    const desktopEl = document.getElementById('desktop');
+    const percentEl = document.querySelector('.percent');
+    let bootProgress = 0;
+
+    const bootInterval = setInterval(() => {
+      bootProgress += Math.random() * 6 + 2.5;
+      if (bootProgress >= 100) {
+        bootProgress = 100;
+        clearInterval(bootInterval);
+        setTimeout(() => {
+          bootEl.classList.add('hidden');
+          desktopEl.style.display = 'block';
+          loadDesktop();
+        }, 1200);
+      }
+      percentEl.textContent = Math.floor(bootProgress) + "%";
+    }, 140);
+
+    // ──────────────────────────────────────────────
+    // Load desktop & apps
+    // ──────────────────────────────────────────────
+    function loadDesktop() {
+      renderIcons();
+      renderMenu();
+      const wallpaper = localStorage.getItem(STORAGE.wallpaper) || '';
+      if (wallpaper) {
+        document.getElementById('wallpaper').style.backgroundImage = `url(${wallpaper})`;
+      }
+
+      const brightness = localStorage.getItem(STORAGE.brightness) || 1;
+      document.body.style.filter = `brightness(${brightness})`;
+
+      setInterval(() => {
+        document.getElementById('clock').textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      }, 1000);
+    }
+
+    // ──────────────────────────────────────────────
+    // Icons & menu
+    // ──────────────────────────────────────────────
+    const apps = [
+      { name: "Files", emoji: "📁", action: () => openWindow('files') },
+      { name: "Terminal", emoji: ">_", action: () => openWindow('terminal') },
+      { name: "Settings", emoji: "⚙️", action: () => openWindow('settings') },
+      { name: "Browser", emoji: "🌐", action: () => openWindow('browser') },
+      { name: "Calculator", emoji: "🧮", action: () => openWindow('calculator') },
+      { name: "Notepad", emoji: "📝", action: () => openWindow('notepad') },
+      { name: "Music", emoji: "🎵", action: () => openWindow('music') },
+      { name: "Paint", emoji: "🖌️", action: () => openWindow('paint') },
+      { name: "Calendar", emoji: "📅", action: () => openWindow('calendar') },
+      { name: "Weather", emoji: "☁️", action: () => openWindow('weather') },
+      { name: "Tic-Tac-Toe", emoji: "❌", action: () => openWindow('ttt') },
+      { name: "Todo", emoji: "✅", action: () => openWindow('todo') },
+      { name: "Clock", emoji: "🕰️", action: () => openWindow('clock') },
+    ];
+
+    function renderIcons() {
+      const desk = desktopEl;
+      apps.forEach((app, i) => {
+        const el = document.createElement('div');
+        el.className = 'icon';
+        el.style.left = (60 + (i % 4) * 120) + 'px';
+        el.style.top = (60 + Math.floor(i / 4) * 120) + 'px';
+        el.innerHTML = `<div>${app.emoji}</div><span>${app.name}</span>`;
+        el.ondblclick = app.action;
+        desk.appendChild(el);
+      });
+    }
+
+    function renderMenu() {
+      const grid = document.querySelector('.menu-grid');
+      apps.forEach(app => {
+        const item = document.createElement('div');
+        item.className = 'menu-item';
+        item.innerHTML = `<div>${app.emoji}</div><span>${app.name}</span>`;
+        item.onclick = app.action;
+        grid.appendChild(item);
+      });
+    }
+
+    // ──────────────────────────────────────────────
+    // Window management
+    // ──────────────────────────────────────────────
+    document.addEventListener('mousedown', e => {
+      if (e.target.closest('.titlebar')) {
+        activeWin = e.target.closest('.window');
+        offsetX = e.clientX - activeWin.offsetLeft;
+        offsetY = e.clientY - activeWin.offsetTop;
+        activeWin.style.zIndex = ++zIndex;
+      }
+    });
+
+    document.addEventListener('mousemove', e => {
+      if (activeWin) {
+        activeWin.style.left = (e.clientX - offsetX) + 'px';
+        activeWin.style.top  = (e.clientY - offsetY) + 'px';
+      }
+    });
+
+    document.addEventListener('mouseup', () => {
+      activeWin = null;
+    });
+
+    function openWindow(id) {
+      if (openWindows[id]) {
+        const win = openWindows[id];
+        if (win.style.display === 'none') {
+          win.style.display = 'flex';
+        }
+        win.style.zIndex = ++zIndex;
+        updateTaskbar();
+        return;
+      }
+
+      const win = document.createElement('div');
+      win.id = 'win-' + id;
+      win.className = 'window';
+      win.style.left = (Math.random() * 300 + 120) + 'px';
+      win.style.top = (Math.random() * 200 + 80) + 'px';
+      win.innerHTML = `
+        <div class="titlebar">
+          <span>${id.charAt(0).toUpperCase() + id.slice(1)}</span>
+          <button class="minimize" onclick="minimizeWindow('${id}')">-</button>
+          <button class="maximize" onclick="maximizeWindow('${id}')">□</button>
+          <button onclick="closeWindow('${id}')">×</button>
+        </div>
+        <div class="content" id="${id}-content"></div>
+      `;
+      document.body.appendChild(win);
+      win.style.display = 'flex';
+      win.style.zIndex = ++zIndex;
+      openWindows[id] = win;
+
+      initApp(id);
+      updateTaskbar();
+    }
+
+    function minimizeWindow(id) {
+      openWindows[id].style.display = 'none';
+      updateTaskbar();
+    }
+
+    function maximizeWindow(id) {
+      const win = openWindows[id];
+      if (win.dataset.maximized) {
+        win.style.left = win.dataset.oldLeft;
+        win.style.top = win.dataset.oldTop;
+        win.style.width = win.dataset.oldWidth;
+        win.style.height = win.dataset.oldHeight;
+        win.dataset.maximized = '';
+      } else {
+        win.dataset.oldLeft = win.style.left;
+        win.dataset.oldTop = win.style.top;
+        win.dataset.oldWidth = win.style.width;
+        win.dataset.oldHeight = win.style.height;
+        win.style.left = '0';
+        win.style.top = '0';
+        win.style.width = '100vw';
+        win.style.height = 'calc(100vh - 48px)';
+        win.dataset.maximized = 'true';
+      }
+    }
+
+    function closeWindow(id) {
+      openWindows[id].remove();
+      delete openWindows[id];
+      updateTaskbar();
+    }
+
+    function updateTaskbar() {
+      const container = document.getElementById('taskbar-windows');
+      container.innerHTML = '';
+      Object.keys(openWindows).forEach(id => {
+        const icon = document.createElement('div');
+        icon.className = 'taskbar-icon';
+        icon.textContent = id.charAt(0).toUpperCase() + id.slice(1);
+        icon.onclick = () => {
+          const win = openWindows[id];
+          if (win.style.display === 'none') win.style.display = 'flex';
+          win.style.zIndex = ++zIndex;
+        };
+        container.appendChild(icon);
+      });
+    }
+
+    // ──────────────────────────────────────────────
+    // App initialization
+    // ──────────────────────────────────────────────
+    function initApp(id) {
+      const content = document.getElementById(id + '-content');
+      if (!content) return;
+
+      switch(id) {
+        case 'settings':
+          content.innerHTML = `
+            <div class="setting">
+              <label>Brightness</label>
+              <input type="range" id="brightness-slider" min="0.3" max="1.5" step="0.05" value="${localStorage.getItem(STORAGE.brightness) || 1}">
+            </div>
+            <div class="setting">
+              <label>Wallpaper</label>
+              <input type="file" id="wallpaper-input" accept="image/*">
+            </div>
+            <div class="setting">
+              <label>Theme</label>
+              <select id="theme-selector">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+              </select>
+            </div>
+          `;
+          document.getElementById('brightness-slider').addEventListener('input', e => {
+            const val = e.target.value;
+            document.body.style.filter = `brightness(${val})`;
+            localStorage.setItem(STORAGE.brightness, val);
+          });
+          document.getElementById('wallpaper-input').addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = ev => {
+                localStorage.setItem(STORAGE.wallpaper, ev.target.result);
+                document.getElementById('wallpaper').style.backgroundImage = `url(${ev.target.result})`;
+              };
+              reader.readAsDataURL(file);
+            }
+          });
+          document.getElementById('theme-selector').addEventListener('change', e => {
+            const theme = e.target.value;
+            document.body.style.background = theme === 'light' ? '#f3f4f6' : '#0a0e17';
+            document.body.style.color = theme === 'light' ? '#0f172a' : '#e2e8f0';
+          });
+          break;
+
+        case 'terminal':
+          content.innerHTML = `
+            <div id="terminal-output"></div>
+            <input id="terminal-input" type="text" placeholder="Type command and press Enter...">
+          `;
+          const output = document.getElementById('terminal-output');
+          const input = document.getElementById('terminal-input');
+          input.focus();
+          input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+              const cmd = input.value.trim();
+              output.innerHTML += `<p>> ${cmd}</p>`;
+              processCommand(cmd, output);
+              input.value = '';
+              output.scrollTop = output.scrollHeight;
+            }
+          });
+          break;
+
+        case 'files':
+          content.innerHTML = `
+            <input type="file" id="file-upload" multiple>
+            <ul id="file-list"></ul>
+            <div id="file-view"></div>
+          `;
+          const upload = document.getElementById('file-upload');
+          const list = document.getElementById('file-list');
+          const view = document.getElementById('file-view');
+          let uploadedFiles = [];
+
+          upload.addEventListener('change', e => {
+            uploadedFiles = Array.from(e.target.files);
+            list.innerHTML = '';
+            uploadedFiles.forEach((file, i) => {
+              const li = document.createElement('li');
+              li.textContent = file.name;
+              li.onclick = () => viewFile(i, view);
+              list.appendChild(li);
+            });
+          });
+          break;
+
+        case 'browser':
+          content.innerHTML = `
+            <div style="display:flex;">
+              <input id="browser-url" type="text" placeholder="Enter URL (e.g. example.com)">
+              <button id="browser-go">Go</button>
+            </div>
+            <iframe id="browser-iframe" src="about:blank"></iframe>
+          `;
+          document.getElementById('browser-go').addEventListener('click', () => {
+            let url = document.getElementById('browser-url').value.trim();
+            if (url && !url.startsWith('http')) url = 'https://' + url;
+            document.getElementById('browser-iframe').src = url || 'about:blank';
+          });
+          break;
+
+        case 'calculator':
+          content.innerHTML = `
+            <input id="calculator-display" type="text" readonly value="0">
+            <div class="calc-buttons">
+              <button class="calc-btn" onclick="calcClick('7')">7</button>
+              <button class="calc-btn" onclick="calcClick('8')">8</button>
+              <button class="calc-btn" onclick="calcClick('9')">9</button>
+              <button class="calc-btn operator" onclick="calcClick('/')">/</button>
+              <button class="calc-btn" onclick="calcClick('4')">4</button>
+              <button class="calc-btn" onclick="calcClick('5')">5</button>
+              <button class="calc-btn" onclick="calcClick('6')">6</button>
+              <button class="calc-btn operator" onclick="calcClick('*')">*</button>
+              <button class="calc-btn" onclick="calcClick('1')">1</button>
+              <button class="calc-btn" onclick="calcClick('2')">2</button>
+              <button class="calc-btn" onclick="calcClick('3')">3</button>
+              <button class="calc-btn operator" onclick="calcClick('-')">-</button>
+              <button class="calc-btn" onclick="calcClick('0')">0</button>
+              <button class="calc-btn" onclick="calcClick('.')">.</button>
+              <button class="calc-btn operator" onclick="calcClick('=')">=</button>
+              <button class="calc-btn operator" onclick="calcClick('+')">+</button>
+              <button class="calc-btn" onclick="calcClear()">C</button>
+            </div>
+          `;
+          const display = document.getElementById('calculator-display');
+          let calcExpression = '';
+          window.calcClick = function(val) {
+            if (val === '=') {
+              try {
+                display.value = eval(calcExpression) || '0';
+              } catch {
+                display.value = 'Error';
+              }
+              calcExpression = '';
+            } else {
+              calcExpression += val;
+              display.value = calcExpression;
+            }
+          };
+          window.calcClear = function() {
+            calcExpression = '';
+            display.value = '0';
+          };
+          break;
+
+        case 'notepad':
+          content.innerHTML = `
+            <textarea id="notepad-text" placeholder="Type here..."></textarea>
+          `;
+          const text = document.getElementById('notepad-text');
+          text.value = localStorage.getItem(STORAGE.notepad) || '';
+          text.addEventListener('input', e => {
+            localStorage.setItem(STORAGE.notepad, e.target.value);
+          });
+          break;
+
+        case 'music':
+          content.innerHTML = `
+            <input type="file" id="music-upload" accept="audio/*" multiple>
+            <ul id="playlist"></ul>
+            <audio id="music-audio" controls></audio>
+          `;
+          const musicUpload = document.getElementById('music-upload');
+          const playlist = document.getElementById('playlist');
+          const audio = document.getElementById('music-audio');
+          musicUpload.addEventListener('change', e => {
+            playlist.innerHTML = '';
+            Array.from(e.target.files).forEach(file => {
+              const li = document.createElement('li');
+              li.textContent = file.name;
+              li.onclick = () => {
+                audio.src = URL.createObjectURL(file);
+                audio.play();
+              };
+              playlist.appendChild(li);
+            });
+          });
+          break;
+
+        case 'paint':
+          content.innerHTML = `
+            <div id="paint-tools">
+              <input type="color" id="paint-color" value="#000000">
+              <input type="range" id="paint-size" min="1" max="50" value="5">
+              <button onclick="clearPaint()">Clear</button>
+              <button onclick="savePaint()">Save</button>
+            </div>
+            <canvas id="paint-canvas"></canvas>
+          `;
+          const canvas = document.getElementById('paint-canvas');
+          canvas.width = content.clientWidth - 40;
+          canvas.height = content.clientHeight - 60;
+          const ctx = canvas.getContext('2d');
+          ctx.lineCap = 'round';
+          let drawing = false;
+
+          canvas.addEventListener('mousedown', e => {
+            drawing = true;
+            ctx.beginPath();
+            ctx.moveTo(e.offsetX, e.offsetY);
+          });
+          canvas.addEventListener('mousemove', e => {
+            if (drawing) {
+              ctx.strokeStyle = document.getElementById('paint-color').value;
+              ctx.lineWidth = document.getElementById('paint-size').value;
+              ctx.lineTo(e.offsetX, e.offsetY);
+              ctx.stroke();
+            }
+          });
+          canvas.addEventListener('mouseup mouseleave', () => drawing = false);
+
+          window.clearPaint = () => ctx.clearRect(0,0,canvas.width,canvas.height);
+          window.savePaint = () => {
+            const link = document.createElement('a');
+            link.download = 'rock-painting.png';
+            link.href = canvas.toDataURL();
+            link.click();
+          };
+          break;
+
+        case 'calendar':
+          content.innerHTML = `
+            <div id="calendar-month"></div>
+            <div class="calendar-grid"></div>
+            <div id="calendar-events"></div>
+            <input id="event-input" type="text" placeholder="Add event...">
+            <button id="add-event">Add</button>
+          `;
+          const monthEl = document.getElementById('calendar-month');
+          const grid = document.querySelector('.calendar-grid');
+          const eventsEl = document.getElementById('calendar-events');
+          const eventInput = document.getElementById('event-input');
+          const addBtn = document.getElementById('add-event');
+
+          let currentDate = new Date();
+          let events = JSON.parse(localStorage.getItem(STORAGE.events) || '{}');
+
+          function renderCalendar() {
+            monthEl.textContent = currentDate.toLocaleString('default', {month:'long', year:'numeric'});
+            grid.innerHTML = '';
+            const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
+            const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+            for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div></div>`;
+            for (let d = 1; d <= daysInMonth; d++) {
+              const day = document.createElement('div');
+              day.className = 'calendar-day';
+              day.textContent = d;
+              day.onclick = () => showEvents(currentDate.getFullYear(), currentDate.getMonth(), d);
+              grid.appendChild(day);
+            }
+          }
+
+          function showEvents(y, m, d) {
+            const key = `${y}-${m+1}-${d}`;
+            eventsEl.innerHTML = `<h3>${m+1}/${d}/${y}</h3>`;
+            (events[key] || []).forEach((ev, i) => {
+              eventsEl.innerHTML += `<p>${ev} <button onclick="deleteEvent('${key}', ${i})">×</button></p>`;
+            });
+          }
+
+          addBtn.onclick = () => {
+            const ev = eventInput.value.trim();
+            if (ev) {
+              const key = `${currentDate.getFullYear()}-${currentDate.getMonth()+1}-${currentDate.getDate()}`;
+              if (!events[key]) events[key] = [];
+              events[key].push(ev);
+              localStorage.setItem(STORAGE.events, JSON.stringify(events));
+              eventInput.value = '';
+              showEvents(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+            }
+          };
+
+          window.deleteEvent = (key, i) => {
+            events[key].splice(i, 1);
+            localStorage.setItem(STORAGE.events, JSON.stringify(events));
+            showEvents(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+          };
+
+          renderCalendar();
+          break;
+
+        case 'weather':
+          content.innerHTML = `
+            <div style="display:flex;">
+              <input id="weather-input" type="text" placeholder="City name">
+              <button id="weather-go">Get</button>
+            </div>
+            <div id="weather-output"></div>
+          `;
+          document.getElementById('weather-go').onclick = async () => {
+            const city = document.getElementById('weather-input').value.trim();
+            if (!city) return;
+            try {
+              const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=43.48&longitude=-110.76&current=temperature_2m,relative_humidity_2m,wind_speed_10m&timezone=America%2FDenver`); // Jackson coords
+              const data = await res.json();
+              document.getElementById('weather-output').innerHTML = `
+                <h3>Jackson, WY</h3>
+                <p>Temperature: ${data.current.temperature_2m} °C</p>
+                <p>Humidity: ${data.current.relative_humidity_2m}%</p>
+                <p>Wind: ${data.current.wind_speed_10m} km/h</p>
+              `;
+            } catch {
+              document.getElementById('weather-output').textContent = 'Error fetching weather';
+            }
+          };
+          break;
+
+        case 'ttt':
+          content.innerHTML = `
+            <div class="ttt-grid" id="ttt-grid"></div>
+            <div id="ttt-status">X's turn</div>
+            <button id="ttt-reset">Reset</button>
+          `;
+          const tttGrid = document.getElementById('ttt-grid');
+          const tttStatus = document.getElementById('ttt-status');
+          const tttReset = document.getElementById('ttt-reset');
+          let tttBoard = Array(9).fill(null);
+          let tttPlayer = 'X';
+
+          function renderTTT() {
+            tttGrid.innerHTML = '';
+            tttBoard.forEach((val, i) => {
+              const cell = document.createElement('div');
+              cell.className = 'ttt-cell';
+              cell.textContent = val || '';
+              cell.onclick = () => tttMove(i);
+              tttGrid.appendChild(cell);
+            });
+          }
+
+          function tttMove(i) {
+            if (tttBoard[i] || checkTTTWin()) return;
+            tttBoard[i] = tttPlayer;
+            if (checkTTTWin()) {
+              tttStatus.textContent = `${tttPlayer} wins!`;
+            } else if (tttBoard.every(v => v)) {
+              tttStatus.textContent = 'Draw!';
+            } else {
+              tttPlayer = tttPlayer === 'X' ? 'O' : 'X';
+              tttStatus.textContent = `${tttPlayer}'s turn`;
+            }
+            renderTTT();
+          }
+
+          function checkTTTWin() {
+            const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+            return wins.some(w => tttBoard[w[0]] && tttBoard[w[0]] === tttBoard[w[1]] && tttBoard[w[1]] === tttBoard[w[2]]);
+          }
+
+          tttReset.onclick = () => {
+            tttBoard = Array(9).fill(null);
+            tttPlayer = 'X';
+            tttStatus.textContent = "X's turn";
+            renderTTT();
+          };
+          renderTTT();
+          break;
+
+        case 'todo':
+          content.innerHTML = `
+            <div style="display:flex;">
+              <input id="todo-input" type="text" placeholder="New task...">
+              <button id="todo-add">Add</button>
+            </div>
+            <ul id="todo-list"></ul>
+          `;
+          const todoInput = document.getElementById('todo-input');
+          const todoAdd = document.getElementById('todo-add');
+          const todoList = document.getElementById('todo-list');
+          let todos = JSON.parse(localStorage.getItem(STORAGE.todo) || '[]');
+
+          function renderTodos() {
+            todoList.innerHTML = '';
+            todos.forEach((task, i) => {
+              const li = document.createElement('li');
+              li.innerHTML = `<span>${task}</span>
+                <button onclick="editTodo(${i})">Edit</button>
+                <button onclick="deleteTodo(${i})">Delete</button>`;
+              todoList.appendChild(li);
+            });
+          }
+
+          todoAdd.onclick = () => {
+            const task = todoInput.value.trim();
+            if (task) {
+              todos.push(task);
+              localStorage.setItem(STORAGE.todo, JSON.stringify(todos));
+              todoInput.value = '';
+              renderTodos();
+            }
+          };
+
+          window.editTodo = i => {
+            const newTask = prompt('Edit task', todos[i]);
+            if (newTask !== null) {
+              todos[i] = newTask.trim();
+              localStorage.setItem(STORAGE.todo, JSON.stringify(todos));
+              renderTodos();
+            }
+          };
+
+          window.deleteTodo = i => {
+            todos.splice(i, 1);
+            localStorage.setItem(STORAGE.todo, JSON.stringify(todos));
+            renderTodos();
+          };
+
+          renderTodos();
+          break;
+
+        case 'clock':
+          content.innerHTML = `
+            <div style="font-size:6rem; text-align:center; margin-top:30%;">${new Date().toLocaleTimeString()}</div>
+          `;
+          setInterval(() => {
+            content.innerHTML = `<div style="font-size:6rem; text-align:center; margin-top:30%;">${new Date().toLocaleTimeString()}</div>`;
+          }, 1000);
+          break;
+      }
+    }
+
+    // ──────────────────────────────────────────────
+    // Terminal commands
+    // ──────────────────────────────────────────────
+    function processCommand(cmd, output) {
+      const args = cmd.trim().split(' ');
+      const command = args[0].toLowerCase();
+      switch (command) {
+        case 'ls':
+          output.innerHTML += '<p>files terminal settings browser calculator notepad music paint calendar weather ttt todo clock</p>';
+          break;
+        case 'help':
+          output.innerHTML += '<p>ls, cd [dir], echo [text], help, clear, date, whoami</p>';
+          break;
+        case 'echo':
+          output.innerHTML += '<p>' + args.slice(1).join(' ') + '</p>';
+          break;
+        case 'date':
+          output.innerHTML += '<p>' + new Date().toLocaleString() + '</p>';
+          break;
+        case 'whoami':
+          output.innerHTML += '<p>user@rock-os</p>';
+          break;
+        case 'clear':
+          output.innerHTML = '';
+          break;
+        default:
+          output.innerHTML += '<p>Command not found: ' + cmd + '</p>';
+      }
+    }
+
+    // ──────────────────────────────────────────────
+    // Files preview
+    // ──────────────────────────────────────────────
+    function viewFile(index, view) {
+      const file = uploadedFiles[index];
+      view.innerHTML = `<h3>${file.name}</h3>`;
+      const reader = new FileReader();
+      reader.onload = e => {
+        if (file.type.startsWith('text/')) {
+          view.innerHTML += `<pre>${e.target.result.slice(0, 2000)}</pre>`;
+        } else if (file.type.startsWith('image/')) {
+          view.innerHTML += `<img src="${e.target.result}" style="max-width:100%;">`;
+        } else {
+          view.innerHTML += '<p>Preview not supported for this file type.</p>';
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // ──────────────────────────────────────────────
+    // Start menu
+    // ──────────────────────────────────────────────
+    document.getElementById('startBtn').onclick = e => {
+      e.stopPropagation();
+      document.getElementById('startMenu').style.display = document.getElementById('startMenu').style.display === 'block' ? 'none' : 'block';
+    };
+
+    document.addEventListener('click', () => {
+      document.getElementById('startMenu').style.display = 'none';
+    });
+  </script>
+</body>
+</html>
